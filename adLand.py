@@ -113,7 +113,9 @@ def get_intermediate_hops(originalrurl,request_header):
     interurl=originalrurl
     redirect_re = re.compile('<meta[^>]*?url=(.*?)["\']', re.IGNORECASE)
     hops = []
+    tryround=0
     while interurl:
+        tryround+=1
         if interurl in hops:
             interurl = None
         else:
@@ -123,8 +125,8 @@ def get_intermediate_hops(originalrurl,request_header):
             try:
                 response = urllib2.urlopen(req)
             except Exception:
-                break
-		#continue
+                if tryround<3:continue
+                else: break
             if response.geturl() != interurl:
                 #hops.insert(0, response.geturl())
                 hops.append(response.geturl())
@@ -145,7 +147,7 @@ def reveal_hidden_landingpage(crypticurl):
 
 def extract_landing_candidate(theurl,thekey,thatframe_id,taburl):
     #try to find the landing page of the given ad, if it is already available as hidden argument in href tag
-
+    print "extracting",theurl
     arguments=urlparse(theurl).query
     potential_landing=parse_qs(arguments,keep_blank_values=1)
 
@@ -254,16 +256,11 @@ def inspect_divs(thatframe, taburl):
                 if len(candid_href) >= len(domainpart) and domainpart in candid_href[:len(domainpart)+12]:
                     #print "i continue",len(candidate_href) >= len(domainpart),candidate_href,domainpart
                     continue
-                #print "before find 0",atag,type(domainpart),domainpart,taburl,candidate_href
-                #handle the special case of adxpose.com tricky ad image
-                #check if it is extractable url
-                #if len(atag['href'])<len(domainpart):
-                #    break
 
                 #this tag is not from the main website
                 adrule_result=adfilter.should_block(candid_href)
                 if not adrule_result:
-                #    #print "not an ad------------->",candidate_href
+                    #print "not an ad------------->",candidate_href
                     continue
                 find_landing_page({'href':candid_href},thatframe.get("id"),domainpart,taburl)
 
@@ -358,10 +355,11 @@ def augment_with_www(url):
     return augURL
 
 def select_actual_content_pages(main_frame,parenturl): #select a subset of five content pages from this website
-    contentpages=[parenturl]
-
+    contentpages=[]
     page_source=BeautifulSoup(main_frame['content'],"lxml")
     for ahref in page_source.findAll("a",href=True):
+        if len(ahref['href'])<20 or ahref['href'] == parenturl:
+            continue
         if parenturl.rstrip("/")!=ahref['href'].rstrip("/") and ahref['href'] not in contentpages:
 
             if comparehostnames(parenturl,ahref['href']) or ahref['href'].startswith("/"):
@@ -369,7 +367,7 @@ def select_actual_content_pages(main_frame,parenturl): #select a subset of five 
                     contentpages.append(parenturl+ahref['href'])
                 elif ahref['href'].rstrip("/") not in [_.rstrip("/") for _ in contentpages]:
                     #print ahref['href'],"yonas",[_.rstrip("/") for _ in contentpages]
-                    contentpages.append(ahref['href'])
+                    if not ahref['href'] in contentpages:contentpages.append(ahref['href'])
                 #else:print ahref['href'].rstrip("/"),contentpages
             if len(contentpages)==5: #five content pages returned
                 return contentpages
@@ -389,9 +387,9 @@ def create_browser_object():
     return browserObj
 
 def inspect_page(main_frame, urltofetch,current_page):
-    print "\n", "\t"*9,"************GOING FOR CONTENT PAGE: ", current_page, "***********\n"
+    print "\n","\t"*9,"************GOING FOR CONTENT PAGE: ", current_page, "***********\n"
     inspect_frames(main_frame, current_page) #image ads
-    inspect_divs(main_frame, current_page)
+    inspect_divs(main_frame, current_page)   #div ads
 
 def start_automation(starturl):
 
@@ -419,23 +417,27 @@ def start_automation(starturl):
         return
     for pagetofetch in contentpages_to_fetch:#inspect five random pages on the website
         #display the pages from current page
-        #for lp in Adobj.advertisers:print lp,'\n'
-        #Adobj.advertisers=[]
         main_frame_i = get_full_page(pagetofetch,browserObj)
         #print main_frame_i
         if main_frame_i:
             inspect_page(main_frame_i, urltofetch,pagetofetch)
-            #urltofetch=select_actual_content_page(main_frame)
 def write_ads_to_file(url_as_name):
-    print "---"*30
-    print "page","..."*20,"ad"
-    fileout=open(url_as_name.lstrip("https://").lstrip("http://").split("/")[0].replace(".","_")+".txt","w")
-    fileout.write("URL---LANDING PAGES\n")
-    for j,lp in Adobj.advertisers:
-        print j,"..."*10,lp,'\n'
-        fileout.write(str(j)+"---"+str(lp)+"\n")
-    fileout.flush()
-    fileout.close()
+   print "==="*70
+   print "  "*10,"LANDING PAGES OF ADS DETECTED ON FIVE SUB PAGES UNDER",url_as_name,"   "*10
+   print "==="*70
+   print "fetch_time", "..."*10, "URL","..."*20,"ad"
+   print "___"*70
+   #candidfilename=time.ctime().replace(":","_").replace(" ","-")+".csv"
+   #fileout=open(url_as_name.lstrip("https://").lstrip("http://").split("/")[0].replace(".","_")+".txt","w")
+   candidfilename="adLand.log"
+   fileout=open(candidfilename,"a")
+   fileout.write("TIMESTAMP --- URL --- LANDING PAGES\n")
+   strtime=str(time.time())
+   for j,lp in Adobj.advertisers:
+       print strtime,"..."*10,j,"..."*10,lp,'\n'
+       fileout.write(strtime+" --- "+str(j)+" --- "+str(lp)+"\n")
+   fileout.flush()
+   fileout.close()
 
 if __name__ == '__main__':
 
