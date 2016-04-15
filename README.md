@@ -1,5 +1,5 @@
 # adLand
-this program detects ads and finds the landing page of each ad in a given site
+This program detects ads and finds the landing page of each ad in a given site
 - accepts a single url or list of urls as input.
 - appends the output to a log file on each run
 

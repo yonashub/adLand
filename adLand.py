@@ -123,8 +123,8 @@ def get_intermediate_hops(originalrurl,request_header):
             try:
                 response = urllib2.urlopen(req)
             except Exception:
-                continue
-            #response = urllib2.urlopen(url)
+                break
+		#continue
             if response.geturl() != interurl:
                 #hops.insert(0, response.geturl())
                 hops.append(response.geturl())
@@ -139,11 +139,8 @@ def get_intermediate_hops(originalrurl,request_header):
     return hops[-1]
 def reveal_hidden_landingpage(crypticurl):
     #if it involves DSP or other middleguys, try to emulate clicks to the webpage, and find all landing the webpage
-    user_agentstr="Mozilla/5.0 (Windows NT 10.0; WOW64; rv:41.0) Gecko/20100101 Firefox/41.0"
+    user_agentstr=Adobj.random_ua#"Mozilla/5.0 (Windows NT 10.0; WOW64; rv:41.0) Gecko/20100101 Firefox/41.0"
     headers = {'User-Agent':user_agentstr}
-    #response = requests.get(crypticurl, headers=headers)
-    #todo: break as soon as u get redirect url (302 code)
-    #return response.url.split("?")[0]
     return get_intermediate_hops(crypticurl,headers)
 
 def extract_landing_candidate(theurl,thekey,thatframe_id,taburl):
@@ -219,8 +216,7 @@ def find_landing_page(atag,thatframe_id,domainpart,taburl):
 
 
 def inspect_frames(thatframe, taburl):
-    # not ad probably a tracker
-    #print "inspecting frame #"
+    # not ad y probably a tracker
     # filter out zero size iframes
     if thatframe.has_key(u'height'):
         if not thatframe[u'height'].endswith("%"):
@@ -241,10 +237,7 @@ def inspect_frames(thatframe, taburl):
     parsableSoup=BeautifulSoup(parsableframe,"lxml")
     find_ads_in_the_soup(thatframe, parsableSoup, taburl)
 def inspect_divs(thatframe, taburl):
-    # not ad probably a tracker
-    #print "inspecting frame #"
-    # filter out zero size iframes
-
+    #this function is to catch those ads that are displayed as href links directly inside divs
     page_as=BeautifulSoup(unicode(thatframe[u'content']),"lxml").findAll("a",href=True)
     for page_a in page_as:
         if page_a.parent.name=="div":
