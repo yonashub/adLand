@@ -6,6 +6,6 @@ This program detects ads and finds the landing page of each ad in a given site
 usage:
 
 ``` {r, engine='bash', count_lines}
-python  adland.py urllist.txt useragentlist.txt proxylist.txt
-python  adland.py http://www.example.com
+python  adLand.py urllist.txt useragentlist.txt proxylist.txt
+python  adLand.py http://www.example.com
 ```
